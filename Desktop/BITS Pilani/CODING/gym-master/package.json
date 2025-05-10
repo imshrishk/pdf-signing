@@ -1,0 +1,20 @@
+{
+  "name": "gym",
+  "version": "1.0.0",
+  "description": "to run",
+  "scripts": {
+    "start": "concurrently \"npm run start-server\" \"npm run start-client\"",
+    "start-server": "cd servers && npm start",
+    "start-client": "cd clients && npm start"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.3"
+  },
+  "keywords": [],
+  "dependencies": {
+    "gym": "file:"
+  }
+}

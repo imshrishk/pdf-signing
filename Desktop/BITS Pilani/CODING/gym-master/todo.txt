@@ -1,0 +1,8 @@
+fix auto scroll formatting
+add feature such that user name appears instead of user id
+
+calorie
+    --- food corresponding calories (that api hackathon thing)
+
+-- fix auto scroll clanchat
+-- admin database and 2step auth

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Home</title>
+  </head>
+  <body>
+    <h1>Welcome to the Home Page</h1>
+    <p>You are logged in as <%= user.email %></p>
+    <a href="/logout">Sign Out</a>
+    <form
+      action="/deleteUser"
+      method="post"
+      onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');"
+    >
+      <button type="submit">Delete Account</button>
+    </form>
+  </body>
+</html>

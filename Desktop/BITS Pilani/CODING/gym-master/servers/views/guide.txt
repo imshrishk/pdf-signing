@@ -1,0 +1,5 @@
+views is essentially frontend\
+
+
+
+added cookies sent on signup
