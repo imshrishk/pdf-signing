@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Signing Server</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      color: #667eea;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      color: #333;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="file"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+
+    .status-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .file-preview {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #667eea;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .button-group button {
+      width: 100%;
+    }
+
+    .server-info {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .server-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background: #dc3545;
+      vertical-align: middle;
+    }
+
+    .server-status.online {
+      background: #28a745;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PDF Signing Server</h1>
+    <p class="subtitle">Server-side PDF signing with PKCS#12 certificate</p>
+
+    <div class="server-info">
+      <span class="server-status" id="serverStatus"></span>
+      <span id="serverMessage">Checking server status...</span>
+    </div>
+
+    <!-- Sign PDF Section -->
+    <div class="section">
+      <div class="section-title">Sign PDF</div>
+
+      <div class="form-group">
+        <label for="pdfFile">Select PDF File</label>
+        <input type="file" id="pdfFile" accept=".pdf" />
+        <div class="file-preview" id="filePreview"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="reason">Reason (optional)</label>
+        <input type="text" id="reason" placeholder="e.g., Approved by CEO" />
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location (optional)</label>
+        <input type="text" id="location" placeholder="e.g., New York" />
+      </div>
+
+      <div class="form-group">
+        <label for="contact">Contact (optional)</label>
+        <input type="text" id="contact" placeholder="e.g., user@example.com" />
+      </div>
+
+      <div class="button-group">
+        <button onclick="signPdf('multipart')">
+          <span id="signBtn1Text">Sign PDF (Multipart)</span>
+        </button>
+        <button onclick="signPdf('base64')">
+          <span id="signBtn2Text">Sign (Base64)</span>
+        </button>
+      </div>
+
+      <div class="status" id="signStatus"></div>
+    </div>
+
+    <!-- Certificate Info Section -->
+    <div class="section">
+      <div class="section-title">Certificate Information</div>
+      <button onclick="getCertificateInfo()">Get Certificate Info</button>
+      <div class="status" id="certStatus"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+
+    // Check server status on load
+    window.addEventListener('load', checkServerStatus);
+
+    function updateStatus(elementId, type, title, message) {
+      const status = document.getElementById(elementId);
+      status.className = `status ${type}`;
+      status.innerHTML = `<div class="status-title">${title}</div><div>${message}</div>`;
+    }
+
+    function showLoading(buttonId) {
+      const button = document.getElementById(buttonId);
+      const text = button.textContent;
+      button.innerHTML = `<span class="loading"></span>Loading...`;
+      button.disabled = true;
+      return { button, text };
+    }
+
+    function hideLoading(context, buttonId) {
+      context.button.disabled = false;
+      const spans = document.querySelectorAll(`#${buttonId}`);
+      for (let span of spans) {
+        if (span.id === buttonId) {
+          span.textContent = context.text;
+        }
+      }
+    }
+
+    async function checkServerStatus() {
+      try {
+        const response = await fetch(`${API_URL}/health`, { method: 'GET' });
+        const status = document.getElementById('serverStatus');
+        const message = document.getElementById('serverMessage');
+
+        if (response.ok) {
+          status.className = 'server-status online';
+          message.textContent = '✓ Server is online and ready';
+        } else {
+          status.className = 'server-status';
+          message.textContent = '✗ Server returned error';
+        }
+      } catch (error) {
+        const status = document.getElementById('serverStatus');
+        const message = document.getElementById('serverMessage');
+        status.className = 'server-status';
+        message.textContent = `✗ Cannot connect to server at ${API_URL}`;
+      }
+    }
+
+    document.getElementById('pdfFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const preview = document.getElementById('filePreview');
+      if (file) {
+        preview.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+      } else {
+        preview.textContent = '';
+      }
+    });
+
+    async function signPdf(method) {
+      const file = document.getElementById('pdfFile').files[0];
+      if (!file) {
+        updateStatus('signStatus', 'error', 'Error', 'Please select a PDF file');
+        return;
+      }
+
+      const reason = document.getElementById('reason').value;
+      const location = document.getElementById('location').value;
+      const contact = document.getElementById('contact').value;
+
+      try {
+        let context;
+        if (method === 'multipart') {
+          context = showLoading('signBtn1Text');
+          const formData = new FormData();
+          formData.append('pdf', file);
+
+          const params = new URLSearchParams();
+          if (reason) params.append('reason', reason);
+          if (location) params.append('location', location);
+          if (contact) params.append('contact', contact);
+
+          const response = await fetch(`${API_URL}/api/sign?${params}`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+
+          const blob = await response.blob();
+          downloadFile(blob, `signed-${file.name}`);
+          updateStatus('signStatus', 'success', 'Success', '✓ PDF signed successfully! Download started.');
+          hideLoading(context, 'signBtn1Text');
+
+        } else {
+          context = showLoading('signBtn2Text');
+          const reader = new FileReader();
+
+          reader.onload = async (e) => {
+            try {
+              const base64 = e.target.result.split(',')[1];
+              const response = await fetch(`${API_URL}/api/sign/base64`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  pdf: base64,
+                  reason,
+                  location,
+                  contact
+                })
+              });
+
+              if (!response.ok) {
+                throw new Error(await response.text());
+              }
+
+              const data = await response.json();
+              const blob = b64toBlob(data.signedPdf, 'application/pdf');
+              downloadFile(blob, `signed-${file.name}`);
+              updateStatus('signStatus', 'success', 'Success', '✓ PDF signed successfully! Download started.');
+              hideLoading(context, 'signBtn2Text');
+            } catch (error) {
+              updateStatus('signStatus', 'error', 'Error', error.message);
+              hideLoading(context, 'signBtn2Text');
+            }
+          };
+
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        updateStatus('signStatus', 'error', 'Error', error.message);
+      }
+    }
+
+    async function getCertificateInfo() {
+      const button = event.target;
+      button.disabled = true;
+
+      try {
+        const response = await fetch(`${API_URL}/api/cert/info`);
+        if (!response.ok) throw new Error('Failed to fetch certificate info');
+
+        const data = await response.json();
+        const info = `
+          <strong>Algorithm:</strong> ${data.algorithm}<br/>
+          <strong>Status:</strong> ${data.loaded ? 'Loaded ✓' : 'Not Loaded ✗'}<br/>
+          <strong>Path:</strong> <code>${data.path}</code><br/>
+          <strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}
+        `;
+        updateStatus('certStatus', 'info', 'Certificate Information', info);
+      } catch (error) {
+        updateStatus('certStatus', 'error', 'Error', error.message);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function downloadFile(blob, filename) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+
+    function b64toBlob(b64Data, contentType = '') {
+      const byteCharacters = atob(b64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: contentType });
+    }
+
+    // Refresh server status every 30 seconds
+    setInterval(checkServerStatus, 30000);
+  </script>
+</body>
+</html>
